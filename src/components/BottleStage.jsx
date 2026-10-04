@@ -1,0 +1,340 @@
+import { motion } from "motion/react";
+import { useState, useEffect } from "react";
+import vanillaBottle from "../assets/images/vanilla-bottle.png";
+import chocoBottle from "../assets/images/choco-bottle.png";
+
+const clamp01 = (t) => Math.max(0, Math.min(1, t));
+const lerp = (a, b, t) => a + (b - a) * t;
+
+// ============================================================
+// MOBILE STAGE
+// ============================================================
+function MobileBottleStage({ scrollY, offsets }) {
+  const vh = window.innerHeight;
+  const vw = window.innerWidth;
+  const cx = vw / 2;
+  const cy = vh / 2;
+
+  const tFlavors = offsets.flavors || 0;
+  const tVanilla = offsets.vanillaBreakdown || tFlavors + vh * 3;
+  const tChoco   = offsets.chocoBreakdown   || tVanilla + vh * 1.5;
+  const tPre     = offsets.preorder         || tChoco + vh * 2;
+
+  // ---- Read card positions each frame so bottles track the cards ----
+  const vcEl = document.getElementById("vanillaCard");
+  const ccEl = document.getElementById("chocoCard");
+  const vcR = vcEl ? vcEl.getBoundingClientRect() : null;
+  const ccR = ccEl ? ccEl.getBoundingClientRect() : null;
+
+  // Bottle anchors: right side of card, mid-height. Computed as offset from viewport center.
+  const cardBottleOffsetX = -vw * 0.14; // inward from card right edge to bottle center
+  const vanillaCardTarget = vcR
+    ? {
+        x: vcR.right + cardBottleOffsetX - cx,
+        y: vcR.top + vcR.height / 2 - cy,
+      }
+    : { x: vw * 0.32, y: -vh * 0.15 };
+  const chocoCardTarget = ccR
+    ? {
+        x: ccR.right + cardBottleOffsetX - cx,
+        y: ccR.top + ccR.height / 2 - cy,
+      }
+    : { x: vw * 0.32, y: vh * 0.28 };
+
+  // Breakdown lock positions (top-right of section)
+  const vanillaBreakdown = { x: vw * 0.30, y: -vh * 0.30 };
+  const chocoBreakdown   = { x: vw * 0.30, y: -vh * 0.30 };
+
+  // Hero positions — bottles flank the heading, sitting slightly below its baseline
+  const heroV = { x: -vw * 0.34, y: vh * 0.22 };
+  const heroC = { x:  vw * 0.34, y: vh * 0.22 };
+
+  // Off-screen
+  const offL = { x: -vw * 0.85, y: -vh * 0.30 };
+  const offR = { x:  vw * 0.85, y: -vh * 0.30 };
+
+  // ---------- VANILLA ----------
+  let vX, vY, vS, vR, vO = 1;
+
+  const vA = Math.max(tFlavors - vh * 0.2, 100);
+  const vB = tFlavors + vh * 0.35;
+  const vC = tVanilla;
+  const vD = tVanilla + vh * 0.4;
+  const vE = tChoco;
+  const vF = tChoco + vh * 0.3;
+
+  if (scrollY < vA) {
+    vX = heroV.x; vY = heroV.y; vS = 1; vR = -12;
+  } else if (scrollY < vB) {
+    const t = clamp01((scrollY - vA) / (vB - vA));
+    vX = lerp(heroV.x, vanillaCardTarget.x, t);
+    vY = lerp(heroV.y, vanillaCardTarget.y, t);
+    vS = lerp(1, 0.62, t);
+    vR = lerp(-12, 0, t);
+  } else if (scrollY < vC) {
+    vX = vanillaCardTarget.x; vY = vanillaCardTarget.y; vS = 0.62; vR = 0;
+  } else if (scrollY < vD) {
+    const t = clamp01((scrollY - vC) / (vD - vC));
+    vX = lerp(vanillaCardTarget.x, vanillaBreakdown.x, t);
+    vY = lerp(vanillaCardTarget.y, vanillaBreakdown.y, t);
+    vS = lerp(0.62, 0.92, t);
+    vR = lerp(0, -4, t);
+  } else if (scrollY < vE) {
+    vX = vanillaBreakdown.x; vY = vanillaBreakdown.y; vS = 0.92; vR = -4;
+  } else if (scrollY < vF) {
+    const t = clamp01((scrollY - vE) / (vF - vE));
+    vX = lerp(vanillaBreakdown.x, offL.x, t);
+    vY = lerp(vanillaBreakdown.y, offL.y, t);
+    vS = lerp(0.92, 0.4, t);
+    vR = lerp(-4, -25, t);
+    vO = 1 - t;
+  } else {
+    vX = offL.x; vY = offL.y; vS = 0.4; vR = -25; vO = 0;
+  }
+  if (scrollY >= tPre - vh * 0.2) vO = 0;
+
+  // ---------- CHOCOLATE ----------
+  let cX, cY, cS, cR, cO = 1;
+
+  const cA = vA;
+  const cB = vB;
+  const cC = tVanilla + vh * 0.1;   // start exiting while vanilla moves
+  const cD = tVanilla + vh * 0.5;   // fully off
+  const cE = tChoco - vh * 0.15;    // start entering chocolate section
+  const cF = tChoco + vh * 0.35;    // locked at chocolate breakdown
+  const cG = Math.max(tPre - vh * 0.4, cF + 1); // start exiting before preorder
+  const cH = Math.max(tPre - vh * 0.05, cG + 1);
+
+  if (scrollY < cA) {
+    cX = heroC.x; cY = heroC.y; cS = 1; cR = 12;
+  } else if (scrollY < cB) {
+    const t = clamp01((scrollY - cA) / (cB - cA));
+    cX = lerp(heroC.x, chocoCardTarget.x, t);
+    cY = lerp(heroC.y, chocoCardTarget.y, t);
+    cS = lerp(1, 0.62, t);
+    cR = lerp(12, 0, t);
+  } else if (scrollY < cC) {
+    cX = chocoCardTarget.x; cY = chocoCardTarget.y; cS = 0.62; cR = 0;
+  } else if (scrollY < cD) {
+    const t = clamp01((scrollY - cC) / (cD - cC));
+    cX = lerp(chocoCardTarget.x, offR.x, t);
+    cY = lerp(chocoCardTarget.y, offR.y, t);
+    cS = lerp(0.62, 0.4, t);
+    cR = lerp(0, 25, t);
+    cO = 1 - t;
+  } else if (scrollY < cE) {
+    cX = offR.x; cY = offR.y; cS = 0.4; cR = 25; cO = 0;
+  } else if (scrollY < cF) {
+    const t = clamp01((scrollY - cE) / (cF - cE));
+    cX = lerp(offR.x, chocoBreakdown.x, t);
+    cY = lerp(offR.y, chocoBreakdown.y, t);
+    cS = lerp(0.4, 0.92, t);
+    cR = lerp(25, -4, t);
+    cO = t;
+  } else if (scrollY < cG) {
+    cX = chocoBreakdown.x; cY = chocoBreakdown.y; cS = 0.92; cR = -4; cO = 1;
+  } else if (scrollY < cH) {
+    const t = clamp01((scrollY - cG) / (cH - cG));
+    cX = lerp(chocoBreakdown.x, offR.x, t);
+    cY = lerp(chocoBreakdown.y, offR.y, t);
+    cS = lerp(0.92, 0.4, t);
+    cR = lerp(-4, 25, t);
+    cO = 1 - t;
+  } else {
+    cX = offR.x; cY = offR.y; cS = 0.4; cR = 25; cO = 0;
+  }
+  if (scrollY >= tPre - vh * 0.2) cO = 0;
+
+  return (
+    <div className="fixed inset-0 pointer-events-none z-20 overflow-hidden">
+      <MobileBottle x={vX} y={vY} scale={vS} rotate={vR} opacity={vO} src={vanillaBottle} alt="Vanilla Protein Bottle" glow="245,158,11" side="left" />
+      <MobileBottle x={cX} y={cY} scale={cS} rotate={cR} opacity={cO} src={chocoBottle} alt="Chocolate Protein Bottle" glow="217,119,6" side="right" />
+    </div>
+  );
+}
+
+function MobileBottle({ x, y, scale, rotate, opacity, src, alt, glow, side }) {
+  return (
+    <div
+      style={{
+        position: "absolute",
+        left: "50%",
+        top: "50%",
+        width: "min(58vw, 250px)",
+        marginLeft: "min(-29vw, -125px)",
+        marginTop: "min(-29vw, -125px)",
+        willChange: "transform",
+      }}
+    >
+      <motion.div
+        initial={{ x: side === "left" ? -150 : 150, y: 0, scale: 1, rotate: 0, opacity: 0 }}
+        animate={{ x, y, scale, rotate, opacity }}
+        transition={{ type: "spring", stiffness: 130, damping: 22 }}
+        style={{ willChange: "transform, opacity" }}
+      >
+        <img
+          src={src}
+          alt={alt}
+          className="w-full h-auto"
+          style={{ filter: `drop-shadow(0 15px 30px rgba(${glow},0.4))` }}
+        />
+      </motion.div>
+    </div>
+  );
+}
+
+// ============================================================
+// DESKTOP STAGE (unchanged)
+// ============================================================
+function DesktopBottleStage({ scrollY, offsets }) {
+  const vh = window.innerHeight;
+  const vw = window.innerWidth;
+
+  const [cardCenters, setCardCenters] = useState({ left: -264, right: 264 });
+
+  useEffect(() => {
+    const measure = () => {
+      const lc = document.getElementById("vanillaCard");
+      const rc = document.getElementById("chocoCard");
+      if (!lc || !rc) return;
+      const lr = lc.getBoundingClientRect();
+      const rr = rc.getBoundingClientRect();
+      const cxx = window.innerWidth / 2;
+      setCardCenters({
+        left: lr.left + lr.width / 2 - cxx,
+        right: rr.left + rr.width / 2 - cxx,
+      });
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    const t1 = setTimeout(measure, 200);
+    const t2 = setTimeout(measure, 1000);
+    return () => {
+      window.removeEventListener("resize", measure);
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, []);
+
+  const heroEnd       = offsets.flavors          || 0;
+  const vanillaStart  = offsets.vanillaBreakdown || 0;
+  const chocoStart    = offsets.chocoBreakdown   || 0;
+  const preorderStart = offsets.preorder || Number.POSITIVE_INFINITY;
+
+  const stickyWindow = vh * 1.35;
+  const glideEnd = Math.max(heroEnd - vh * 0.3, 240);
+  const holdEnd  = heroEnd + stickyWindow;
+  const transLen = Math.max(vanillaStart - holdEnd, 1);
+
+  const chocoExitStart   = holdEnd;
+  const chocoExitEnd     = holdEnd + transLen * 0.28;
+  const vanillaMoveStart = holdEnd;
+  const vanillaMoveEnd   = holdEnd + transLen * 0.48;
+  const vanillaFadeStart = Math.max(chocoStart - vh * 0.58, vanillaMoveEnd + 1);
+  const vanillaFadeEnd   = Math.max(chocoStart - vh * 0.3, vanillaFadeStart + 1);
+  const chocoInStart     = Math.max(chocoStart - vh * 0.48, vanillaFadeEnd + 1);
+  const chocoInEnd       = chocoStart;
+  const chocoFadeStart   = Math.max(chocoStart + vh * 0.35, preorderStart - vh * 0.45);
+  const chocoFadeEnd     = Math.max(chocoFadeStart + 1, preorderStart);
+
+  const heroVanillaX = -0.4 * vw;
+  const heroChocoX   =  0.4 * vw;
+  const cardLeftX    = cardCenters.left + Math.min(vw * 0.08, 120);
+  const cardRightX   = cardCenters.right + Math.min(vw * 0.08, 120);
+  const vanillaSlotX = -0.34 * vw;
+  const vanillaOffX  = -0.75 * vw;
+  const chocoSlotX   =  0.32 * vw;
+  const chocoOffX    =  0.95 * vw;
+
+  let vX, vS, vO = 1, vR;
+  if (scrollY < glideEnd) {
+    const t = clamp01(scrollY / glideEnd);
+    vX = lerp(heroVanillaX, cardLeftX, t);
+    vS = lerp(1, 0.55, t);
+    vR = lerp(-8, 0, t);
+  } else if (scrollY < vanillaMoveStart) {
+    vX = cardLeftX; vS = 0.55; vR = 0;
+  } else if (scrollY < vanillaMoveEnd) {
+    const t = clamp01((scrollY - vanillaMoveStart) / (vanillaMoveEnd - vanillaMoveStart));
+    vX = lerp(cardLeftX, vanillaSlotX, t);
+    vS = lerp(0.55, 1, t);
+    vR = lerp(0, -8, t);
+  } else if (scrollY < vanillaFadeStart) {
+    vX = vanillaSlotX; vS = 1; vR = -8;
+  } else if (scrollY < vanillaFadeEnd) {
+    const t = clamp01((scrollY - vanillaFadeStart) / (vanillaFadeEnd - vanillaFadeStart));
+    vX = lerp(vanillaSlotX, vanillaOffX, t);
+    vS = lerp(1, 0.3, t);
+    vO = 1 - t;
+    vR = lerp(-8, -25, t);
+  } else {
+    vX = vanillaOffX; vS = 0.3; vO = 0; vR = -25;
+  }
+
+  let cX, cS, cO = 1, cR;
+  if (scrollY < glideEnd) {
+    const t = clamp01(scrollY / glideEnd);
+    cX = lerp(heroChocoX, cardRightX, t);
+    cS = lerp(1, 0.55, t);
+    cR = lerp(8, 0, t);
+  } else if (scrollY < chocoExitStart) {
+    cX = cardRightX; cS = 0.55; cR = 0;
+  } else if (scrollY < chocoExitEnd) {
+    const t = clamp01((scrollY - chocoExitStart) / (chocoExitEnd - chocoExitStart));
+    cX = lerp(cardRightX, chocoOffX, t);
+    cS = lerp(0.55, 0.2, t);
+    cO = 1 - t;
+    cR = lerp(0, 25, t);
+  } else if (scrollY < chocoInStart) {
+    cX = chocoOffX; cS = 0.2; cO = 0; cR = 25;
+  } else if (scrollY < chocoInEnd) {
+    const t = clamp01((scrollY - chocoInStart) / (chocoInEnd - chocoInStart));
+    cX = lerp(chocoOffX, chocoSlotX, t);
+    cS = lerp(0.2, 1, t);
+    cO = t;
+    cR = lerp(25, 8, t);
+  } else if (scrollY < chocoFadeStart) {
+    cX = chocoSlotX; cS = 1; cO = 1; cR = 8;
+  } else if (scrollY < chocoFadeEnd) {
+    const t = clamp01((scrollY - chocoFadeStart) / (chocoFadeEnd - chocoFadeStart));
+    cX = lerp(chocoSlotX, chocoOffX, t);
+    cS = lerp(1, 0.35, t);
+    cO = 1 - t;
+    cR = lerp(8, 25, t);
+  } else {
+    cX = chocoOffX; cS = 0.35; cO = 0; cR = 25;
+  }
+
+  return (
+    <div className="fixed inset-0 pointer-events-none z-20 flex items-center justify-center overflow-hidden">
+      <motion.div
+        initial={{ x: -1.5 * vw, rotate: -35, opacity: 0, scale: 0.5 }}
+        animate={{ x: vX, rotate: vR, opacity: vO, scale: vS }}
+        transition={{ type: "spring", stiffness: 130, damping: 22 }}
+        className="absolute w-[190px] sm:w-[300px] md:w-[460px] lg:w-[540px]"
+      >
+        <img src={vanillaBottle} alt="Vanilla Protein Bottle" className="w-full h-auto drop-shadow-[0_25px_45px_rgba(245,158,11,0.35)]" />
+      </motion.div>
+      <motion.div
+        initial={{ x: 1.5 * vw, rotate: 35, opacity: 0, scale: 0.5 }}
+        animate={{ x: cX, rotate: cR, opacity: cO, scale: cS }}
+        transition={{ type: "spring", stiffness: 130, damping: 22 }}
+        className="absolute w-[190px] sm:w-[300px] md:w-[460px] lg:w-[540px]"
+      >
+        <img src={chocoBottle} alt="Chocolate Protein Bottle" className="w-full h-auto drop-shadow-[0_25px_45px_rgba(217,119,6,0.35)]" />
+      </motion.div>
+    </div>
+  );
+}
+
+// ============================================================
+// MAIN EXPORT
+// ============================================================
+export default function BottleStage({ scrollY, offsets }) {
+  const ready = Object.keys(offsets).length > 0;
+  if (!ready) return <div className="fixed inset-0 pointer-events-none z-20 overflow-hidden" />;
+
+  const vw = window.innerWidth;
+  if (vw < 768) return <MobileBottleStage scrollY={scrollY} offsets={offsets} />;
+  return <DesktopBottleStage scrollY={scrollY} offsets={offsets} />;
+}
