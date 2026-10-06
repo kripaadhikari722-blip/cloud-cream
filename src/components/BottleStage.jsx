@@ -28,29 +28,31 @@ function MobileBottleStage({ scrollY, offsets }) {
 
   // Bottle anchors: right side of card, mid-height. Computed as offset from viewport center.
   const cardBottleOffsetX = -vw * 0.14; // inward from card right edge to bottle center
+  // Keep the bottle on screen while its card scrolls away, so hand-offs never vanish off the top
+  const clampY = (y) => Math.max(-vh * 0.32, Math.min(vh * 0.32, y));
   const vanillaCardTarget = vcR
     ? {
         x: vcR.right + cardBottleOffsetX - cx,
-        y: vcR.top + vcR.height / 2 - cy,
+        y: clampY(vcR.top + vcR.height / 2 - cy),
       }
     : { x: vw * 0.32, y: -vh * 0.15 };
   const chocoCardTarget = ccR
     ? {
         x: ccR.right + cardBottleOffsetX - cx,
-        y: ccR.top + ccR.height / 2 - cy,
+        y: clampY(ccR.top + ccR.height / 2 - cy),
       }
     : { x: vw * 0.32, y: vh * 0.28 };
 
-  // Breakdown lock positions (top-right of section)
-  const vanillaBreakdown = { x: vw * 0.30, y: -vh * 0.30 };
-  const chocoBreakdown   = { x: vw * 0.30, y: -vh * 0.30 };
+  // Breakdown lock positions — right-hand column beside the copy (copy is 65% wide, left-aligned)
+  const vanillaBreakdown = { x: vw * 0.31, y: -vh * 0.1 };
+  const chocoBreakdown   = { x: vw * 0.31, y: -vh * 0.1 };
 
-  // Hero positions — bottles flank the heading, sitting slightly below its baseline
-  const heroV = { x: -vw * 0.34, y: vh * 0.22 };
-  const heroC = { x:  vw * 0.34, y: vh * 0.22 };
+  // Hero positions — bottles sit side by side below the heading so they never cover it
+  const heroV = { x: -vw * 0.24, y: vh * 0.3 };
+  const heroC = { x:  vw * 0.24, y: vh * 0.3 };
 
   // Off-screen
-  const offL = { x: -vw * 0.85, y: -vh * 0.30 };
+  const offTop = { x: vanillaBreakdown.x, y: -vh * 0.85 };
   const offR = { x:  vw * 0.85, y: -vh * 0.30 };
 
   // ---------- VANILLA ----------
@@ -58,19 +60,19 @@ function MobileBottleStage({ scrollY, offsets }) {
 
   const vA = Math.max(tFlavors - vh * 0.2, 100);
   const vB = tFlavors + vh * 0.35;
-  const vC = tVanilla;
-  const vD = tVanilla + vh * 0.4;
-  const vE = tChoco;
-  const vF = tChoco + vh * 0.3;
+  const vC = tVanilla - vh * 0.95;
+  const vD = tVanilla + vh * 0.1;
+  const vE = tChoco - vh * 0.45;
+  const vF = tChoco - vh * 0.1;
 
   if (scrollY < vA) {
-    vX = heroV.x; vY = heroV.y; vS = 1; vR = -12;
+    vX = heroV.x; vY = heroV.y; vS = 0.8; vR = -10;
   } else if (scrollY < vB) {
     const t = clamp01((scrollY - vA) / (vB - vA));
     vX = lerp(heroV.x, vanillaCardTarget.x, t);
     vY = lerp(heroV.y, vanillaCardTarget.y, t);
-    vS = lerp(1, 0.62, t);
-    vR = lerp(-12, 0, t);
+    vS = lerp(0.8, 0.62, t);
+    vR = lerp(-10, 0, t);
   } else if (scrollY < vC) {
     vX = vanillaCardTarget.x; vY = vanillaCardTarget.y; vS = 0.62; vR = 0;
   } else if (scrollY < vD) {
@@ -83,13 +85,13 @@ function MobileBottleStage({ scrollY, offsets }) {
     vX = vanillaBreakdown.x; vY = vanillaBreakdown.y; vS = 0.92; vR = -4;
   } else if (scrollY < vF) {
     const t = clamp01((scrollY - vE) / (vF - vE));
-    vX = lerp(vanillaBreakdown.x, offL.x, t);
-    vY = lerp(vanillaBreakdown.y, offL.y, t);
-    vS = lerp(0.92, 0.4, t);
-    vR = lerp(-4, -25, t);
+    vX = lerp(vanillaBreakdown.x, offTop.x, t);
+    vY = lerp(vanillaBreakdown.y, offTop.y, t);
+    vS = lerp(0.92, 0.6, t);
+    vR = lerp(-4, -12, t);
     vO = 1 - t;
   } else {
-    vX = offL.x; vY = offL.y; vS = 0.4; vR = -25; vO = 0;
+    vX = offTop.x; vY = offTop.y; vS = 0.6; vR = -12; vO = 0;
   }
   if (scrollY >= tPre - vh * 0.2) vO = 0;
 
@@ -98,21 +100,21 @@ function MobileBottleStage({ scrollY, offsets }) {
 
   const cA = vA;
   const cB = vB;
-  const cC = tVanilla + vh * 0.1;   // start exiting while vanilla moves
-  const cD = tVanilla + vh * 0.5;   // fully off
-  const cE = tChoco - vh * 0.15;    // start entering chocolate section
-  const cF = tChoco + vh * 0.35;    // locked at chocolate breakdown
+  const cC = tVanilla - vh * 0.95;  // start exiting while vanilla moves (card still on screen)
+  const cD = tVanilla - vh * 0.45;  // fully off
+  const cE = vF;                    // enter once vanilla has cleared
+  const cF = tChoco + vh * 0.25;    // locked at chocolate breakdown
   const cG = Math.max(tPre - vh * 0.4, cF + 1); // start exiting before preorder
   const cH = Math.max(tPre - vh * 0.05, cG + 1);
 
   if (scrollY < cA) {
-    cX = heroC.x; cY = heroC.y; cS = 1; cR = 12;
+    cX = heroC.x; cY = heroC.y; cS = 0.8; cR = 10;
   } else if (scrollY < cB) {
     const t = clamp01((scrollY - cA) / (cB - cA));
     cX = lerp(heroC.x, chocoCardTarget.x, t);
     cY = lerp(heroC.y, chocoCardTarget.y, t);
-    cS = lerp(1, 0.62, t);
-    cR = lerp(12, 0, t);
+    cS = lerp(0.8, 0.62, t);
+    cR = lerp(10, 0, t);
   } else if (scrollY < cC) {
     cX = chocoCardTarget.x; cY = chocoCardTarget.y; cS = 0.62; cR = 0;
   } else if (scrollY < cD) {
@@ -161,8 +163,7 @@ function MobileBottle({ x, y, scale, rotate, opacity, src, alt, glow, side }) {
         left: "50%",
         top: "50%",
         width: "min(58vw, 250px)",
-        marginLeft: "min(-29vw, -125px)",
-        marginTop: "min(-29vw, -125px)",
+        transform: "translate(-50%, -50%)",
         willChange: "transform",
       }}
     >
