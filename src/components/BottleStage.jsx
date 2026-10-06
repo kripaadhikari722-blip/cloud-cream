@@ -66,8 +66,11 @@ function MobileBottleStage({ scrollY, offsets }) {
   // ---------- VANILLA ----------
   let vX, vY, vS, vR, vO = 1;
 
-  const vA = Math.max(tFlavors - vh * 0.2, 100);
-  const vB = tFlavors + vh * 0.35;
+  // Glide from the hero into the cards while the vanilla card scrolls up the screen,
+  // so both bottles are already sitting in their cards by the time the cards are in view
+  const vanillaCardTop = vcR ? vcR.top + scrollY : tFlavors + vh * 0.3;
+  const vA = Math.max(vanillaCardTop - vh, 40);
+  const vB = Math.max(vanillaCardTop - vh * 0.3, vA + 1);
   const vC = Math.min(cardsPassed, tVanilla - vh * 0.2);
   const vD = tVanilla + vh * 0.1;
   const vE = tChoco - vh * 0.45;
@@ -168,25 +171,30 @@ function MobileBottle({ x, y, scale, rotate, opacity, src, alt, glow }) {
         top: "50%",
         width: "min(80vw, 340px)",
         transform: "translate(-50%, -50%)",
-        willChange: "transform",
       }}
     >
+      {/* One-time fade-up on load; scroll movement below is applied directly so the
+          bottle stays locked to the page instead of trailing behind it */}
       <motion.div
-        // Fade up into place on load rather than flying in from the sides
-        initial={{ x, y: y + 40, scale, rotate, opacity: 0 }}
-        animate={{ x, y, scale, rotate, opacity }}
-        transition={{
-          type: "spring", stiffness: 130, damping: 22,
-          opacity: { duration: 0.15, ease: "linear" },
-        }}
-        style={{ willChange: "transform, opacity" }}
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
       >
-        <img
-          src={src}
-          alt={alt}
-          className="w-full h-auto"
-          style={{ filter: `drop-shadow(0 15px 30px rgba(${glow},0.4))` }}
-        />
+        <div
+          style={{
+            transform: `translate3d(${x}px, ${y}px, 0) scale(${scale}) rotate(${rotate}deg)`,
+            opacity,
+            transition: "opacity 150ms linear",
+            willChange: "transform, opacity",
+          }}
+        >
+          <img
+            src={src}
+            alt={alt}
+            className="w-full h-auto"
+            style={{ filter: `drop-shadow(0 15px 30px rgba(${glow},0.4))` }}
+          />
+        </div>
       </motion.div>
     </div>
   );
