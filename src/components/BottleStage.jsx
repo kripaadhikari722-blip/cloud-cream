@@ -1,7 +1,7 @@
 import { motion } from "motion/react";
 import { useState, useEffect } from "react";
-import vanillaBottle from "../assets/images/vanilla-bottle.png";
-import chocoBottle from "../assets/images/choco-bottle.png";
+import vanillaBottle from "../assets/images/vanilla-can.png";
+import chocoBottle from "../assets/images/choco-can.png";
 
 const clamp01 = (t) => Math.max(0, Math.min(1, t));
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -169,7 +169,7 @@ function MobileBottle({ x, y, scale, rotate, opacity, src, alt, glow }) {
         position: "absolute",
         left: "50%",
         top: "50%",
-        width: "min(80vw, 340px)",
+        width: "min(26vw, 108px)",
         transform: "translate(-50%, -50%)",
       }}
     >
@@ -328,7 +328,7 @@ function DesktopBottleStage({ scrollY, offsets }) {
         initial={{ x: -1.5 * vw, rotate: -35, opacity: 0, scale: 0.5 }}
         animate={{ x: vX, rotate: vR, opacity: vO, scale: vS }}
         transition={{ type: "spring", stiffness: 130, damping: 22 }}
-        className="absolute w-[190px] sm:w-[300px] md:w-[460px] lg:w-[540px]"
+        className="absolute w-[68px] sm:w-[108px] md:w-[165px] lg:w-[195px]"
       >
         <img src={vanillaBottle} alt="Vanilla Protein Bottle" className="w-full h-auto drop-shadow-[0_25px_45px_rgba(245,158,11,0.35)]" />
       </motion.div>
@@ -336,7 +336,7 @@ function DesktopBottleStage({ scrollY, offsets }) {
         initial={{ x: 1.5 * vw, rotate: 35, opacity: 0, scale: 0.5 }}
         animate={{ x: cX, rotate: cR, opacity: cO, scale: cS }}
         transition={{ type: "spring", stiffness: 130, damping: 22 }}
-        className="absolute w-[190px] sm:w-[300px] md:w-[460px] lg:w-[540px]"
+        className="absolute w-[68px] sm:w-[108px] md:w-[165px] lg:w-[195px]"
       >
         <img src={chocoBottle} alt="Chocolate Protein Bottle" className="w-full h-auto drop-shadow-[0_25px_45px_rgba(217,119,6,0.35)]" />
       </motion.div>
