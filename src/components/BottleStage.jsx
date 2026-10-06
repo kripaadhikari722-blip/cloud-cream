@@ -28,18 +28,18 @@ function MobileBottleStage({ scrollY, offsets }) {
 
   // Bottle anchors: right side of card, mid-height. Computed as offset from viewport center.
   const cardBottleOffsetX = -vw * 0.14; // inward from card right edge to bottle center
-  // Keep the bottle on screen while its card scrolls away, so hand-offs never vanish off the top
-  const clampY = (y) => Math.max(-vh * 0.32, Math.min(vh * 0.32, y));
+  // Bottles ride with their cards; once a card is far off the top, hold just above the viewport
+  const clampY = (y) => Math.max(-vh * 0.75, y);
   const vanillaCardTarget = vcR
     ? {
         x: vcR.right + cardBottleOffsetX - cx,
-        y: clampY(vcR.top + vcR.height / 2 - cy),
+        y: clampY(vcR.top + vcR.height * 0.44 - cy),
       }
     : { x: vw * 0.32, y: -vh * 0.15 };
   const chocoCardTarget = ccR
     ? {
         x: ccR.right + cardBottleOffsetX - cx,
-        y: clampY(ccR.top + ccR.height / 2 - cy),
+        y: clampY(ccR.top + ccR.height * 0.44 - cy),
       }
     : { x: vw * 0.32, y: vh * 0.28 };
 
@@ -48,19 +48,27 @@ function MobileBottleStage({ scrollY, offsets }) {
   const chocoBreakdown   = { x: vw * 0.31, y: -vh * 0.1 };
 
   // Hero positions — bottles sit side by side below the heading so they never cover it
-  const heroV = { x: -vw * 0.24, y: vh * 0.3 };
-  const heroC = { x:  vw * 0.24, y: vh * 0.3 };
+  const heroV = { x: -vw * 0.24, y: vh * 0.28 };
+  const heroC = { x:  vw * 0.24, y: vh * 0.28 };
 
   // Off-screen
   const offTop = { x: vanillaBreakdown.x, y: -vh * 0.85 };
-  const offR = { x:  vw * 0.85, y: -vh * 0.30 };
+  const offR = { x:  vw * 0.85, y: chocoBreakdown.y };
+
+  // Nothing may show over the "Pick your fuel" section
+  const cHide = tPre - vh * 0.39;
+
+  // Document position of the chocolate card's bottom edge
+  const chocoCardBottom = ccR ? ccR.bottom + scrollY : tVanilla - vh * 0.5;
+  // Moment the chocolate card has been scrolled past
+  const cardsPassed = chocoCardBottom - vh * 0.35;
 
   // ---------- VANILLA ----------
   let vX, vY, vS, vR, vO = 1;
 
   const vA = Math.max(tFlavors - vh * 0.2, 100);
   const vB = tFlavors + vh * 0.35;
-  const vC = tVanilla - vh * 0.95;
+  const vC = Math.min(cardsPassed, tVanilla - vh * 0.2);
   const vD = tVanilla + vh * 0.1;
   const vE = tChoco - vh * 0.45;
   const vF = tChoco - vh * 0.1;
@@ -71,15 +79,15 @@ function MobileBottleStage({ scrollY, offsets }) {
     const t = clamp01((scrollY - vA) / (vB - vA));
     vX = lerp(heroV.x, vanillaCardTarget.x, t);
     vY = lerp(heroV.y, vanillaCardTarget.y, t);
-    vS = lerp(0.8, 0.62, t);
+    vS = lerp(0.8, 0.58, t);
     vR = lerp(-10, 0, t);
   } else if (scrollY < vC) {
-    vX = vanillaCardTarget.x; vY = vanillaCardTarget.y; vS = 0.62; vR = 0;
+    vX = vanillaCardTarget.x; vY = vanillaCardTarget.y; vS = 0.58; vR = 0;
   } else if (scrollY < vD) {
     const t = clamp01((scrollY - vC) / (vD - vC));
     vX = lerp(vanillaCardTarget.x, vanillaBreakdown.x, t);
     vY = lerp(vanillaCardTarget.y, vanillaBreakdown.y, t);
-    vS = lerp(0.62, 0.92, t);
+    vS = lerp(0.58, 0.92, t);
     vR = lerp(0, -4, t);
   } else if (scrollY < vE) {
     vX = vanillaBreakdown.x; vY = vanillaBreakdown.y; vS = 0.92; vR = -4;
@@ -93,19 +101,19 @@ function MobileBottleStage({ scrollY, offsets }) {
   } else {
     vX = offTop.x; vY = offTop.y; vS = 0.6; vR = -12; vO = 0;
   }
-  if (scrollY >= tPre - vh * 0.2) vO = 0;
+  if (scrollY >= cHide) vO = 0;
 
   // ---------- CHOCOLATE ----------
   let cX, cY, cS, cR, cO = 1;
 
   const cA = vA;
   const cB = vB;
-  const cC = tVanilla - vh * 0.95;  // start exiting while vanilla moves (card still on screen)
-  const cD = tVanilla - vh * 0.45;  // fully off
-  const cE = vF;                    // enter once vanilla has cleared
-  const cF = tChoco + vh * 0.25;    // locked at chocolate breakdown
-  const cG = Math.max(tPre - vh * 0.4, cF + 1); // start exiting before preorder
-  const cH = Math.max(tPre - vh * 0.05, cG + 1);
+  const cC = Math.max(cardsPassed, cB + 1); // card scrolled past: vanish
+  const cD = cC + vh * 0.06;                               // gone almost instantly
+  const cE = tChoco - vh * 0.25;    // slide in as the chocolate section arrives
+  const cF = tChoco + vh * 0.1;     // locked beside the chocolate copy (mirrors vanilla)
+  const cG = Math.max(tPre - vh * 0.45, cF + 1); // hold until just before "Pick your fuel"
+  const cH = cG + vh * 0.06;                     // then vanish almost instantly
 
   if (scrollY < cA) {
     cX = heroC.x; cY = heroC.y; cS = 0.8; cR = 10;
@@ -113,64 +121,64 @@ function MobileBottleStage({ scrollY, offsets }) {
     const t = clamp01((scrollY - cA) / (cB - cA));
     cX = lerp(heroC.x, chocoCardTarget.x, t);
     cY = lerp(heroC.y, chocoCardTarget.y, t);
-    cS = lerp(0.8, 0.62, t);
+    cS = lerp(0.8, 0.58, t);
     cR = lerp(10, 0, t);
   } else if (scrollY < cC) {
-    cX = chocoCardTarget.x; cY = chocoCardTarget.y; cS = 0.62; cR = 0;
+    cX = chocoCardTarget.x; cY = chocoCardTarget.y; cS = 0.58; cR = 0;
   } else if (scrollY < cD) {
     const t = clamp01((scrollY - cC) / (cD - cC));
-    cX = lerp(chocoCardTarget.x, offR.x, t);
-    cY = lerp(chocoCardTarget.y, offR.y, t);
-    cS = lerp(0.62, 0.4, t);
-    cR = lerp(0, 25, t);
+    cX = chocoCardTarget.x; cY = chocoCardTarget.y;
+    cS = lerp(0.58, 0.5, t); cR = 0;
     cO = 1 - t;
   } else if (scrollY < cE) {
-    cX = offR.x; cY = offR.y; cS = 0.4; cR = 25; cO = 0;
+    cX = offR.x; cY = offR.y; cS = 0.6; cR = 12; cO = 0;
   } else if (scrollY < cF) {
     const t = clamp01((scrollY - cE) / (cF - cE));
     cX = lerp(offR.x, chocoBreakdown.x, t);
-    cY = lerp(offR.y, chocoBreakdown.y, t);
-    cS = lerp(0.4, 0.92, t);
-    cR = lerp(25, -4, t);
+    cY = chocoBreakdown.y;
+    cS = lerp(0.6, 0.92, t);
+    cR = lerp(12, -4, t);
     cO = t;
   } else if (scrollY < cG) {
     cX = chocoBreakdown.x; cY = chocoBreakdown.y; cS = 0.92; cR = -4; cO = 1;
   } else if (scrollY < cH) {
     const t = clamp01((scrollY - cG) / (cH - cG));
-    cX = lerp(chocoBreakdown.x, offR.x, t);
-    cY = lerp(chocoBreakdown.y, offR.y, t);
-    cS = lerp(0.92, 0.4, t);
-    cR = lerp(-4, 25, t);
+    cX = chocoBreakdown.x; cY = chocoBreakdown.y;
+    cS = lerp(0.92, 0.8, t); cR = -4;
     cO = 1 - t;
   } else {
-    cX = offR.x; cY = offR.y; cS = 0.4; cR = 25; cO = 0;
+    cX = chocoBreakdown.x; cY = chocoBreakdown.y; cS = 0.8; cR = -4; cO = 0;
   }
-  if (scrollY >= tPre - vh * 0.2) cO = 0;
+  if (scrollY >= cHide) cO = 0;
 
   return (
     <div className="fixed inset-0 pointer-events-none z-20 overflow-hidden">
-      <MobileBottle x={vX} y={vY} scale={vS} rotate={vR} opacity={vO} src={vanillaBottle} alt="Vanilla Protein Bottle" glow="245,158,11" side="left" />
-      <MobileBottle x={cX} y={cY} scale={cS} rotate={cR} opacity={cO} src={chocoBottle} alt="Chocolate Protein Bottle" glow="217,119,6" side="right" />
+      <MobileBottle x={vX} y={vY} scale={vS} rotate={vR} opacity={vO} src={vanillaBottle} alt="Vanilla Protein Bottle" glow="245,158,11" />
+      <MobileBottle x={cX} y={cY} scale={cS} rotate={cR} opacity={cO} src={chocoBottle} alt="Chocolate Protein Bottle" glow="217,119,6" />
     </div>
   );
 }
 
-function MobileBottle({ x, y, scale, rotate, opacity, src, alt, glow, side }) {
+function MobileBottle({ x, y, scale, rotate, opacity, src, alt, glow }) {
   return (
     <div
       style={{
         position: "absolute",
         left: "50%",
         top: "50%",
-        width: "min(58vw, 250px)",
+        width: "min(80vw, 340px)",
         transform: "translate(-50%, -50%)",
         willChange: "transform",
       }}
     >
       <motion.div
-        initial={{ x: side === "left" ? -150 : 150, y: 0, scale: 1, rotate: 0, opacity: 0 }}
+        // Fade up into place on load rather than flying in from the sides
+        initial={{ x, y: y + 40, scale, rotate, opacity: 0 }}
         animate={{ x, y, scale, rotate, opacity }}
-        transition={{ type: "spring", stiffness: 130, damping: 22 }}
+        transition={{
+          type: "spring", stiffness: 130, damping: 22,
+          opacity: { duration: 0.15, ease: "linear" },
+        }}
         style={{ willChange: "transform, opacity" }}
       >
         <img
